@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Management System</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.3/gsap.min.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div id="app">
+        <div class="container mx-auto px-4 py-8">
+            <h1 class="text-3xl font-bold mb-8 text-center text-gray-800">Task Management System</h1>
+            
+            <div class="mb-8 bg-white p-6 rounded-lg shadow-md">
+                <form @submit.prevent="addTask" class="space-y-4">
+                    <div>
+                        <input type="text" v-model="newTask.title" placeholder="Task Title" class="w-full p-2 border rounded">
+                    </div>
+                    <div>
+                        <textarea v-model="newTask.description" placeholder="Task Description" class="w-full p-2 border rounded"></textarea>
+                    </div>
+                    <div>
+                        <select v-model="newTask.category" class="w-full p-2 border rounded">
+                            <option value="work">Work</option>
+                            <option value="personal">Personal</option>
+                            <option value="shopping">Shopping</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 transition-colors">
+                        Add Task
+                    </button>
+                </form>
+            </div>
+
+            <div class="flex mb-4 space-x-2">
+                <button @click="filter = 'all'" :class="{'bg-blue-500 text-white': filter === 'all'}" class="px-4 py-2 rounded">
+                    All
+                </button>
+                <button @click="filter = 'pending'" :class="{'bg-blue-500 text-white': filter === 'pending'}" class="px-4 py-2 rounded">
+                    Pending
+                </button>
+                <button @click="filter = 'completed'" :class="{'bg-blue-500 text-white': filter === 'completed'}" class="px-4 py-2 rounded">
+                    Completed
+                </button>
+            </div>
+
+            <div id="taskList" class="space-y-4">
+                <div v-for="task in filteredTasks" :key="task.id" 
+                     class="bg-white p-4 rounded-lg shadow-md transition-all duration-300 hover:shadow-lg">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-4">
+                            <input type="checkbox" v-model="task.completed" @change="toggleTask(task)"
+                                   class="h-5 w-5 text-blue-500">
+                            <div>
+                                <h3 :class="{'line-through': task.completed}" class="text-lg font-semibold">
+                                    {{ task.title }}
+                                </h3>
+                                <p class="text-gray-600">{{ task.description }}</p>
+                                <span class="text-sm text-gray-500">{{ task.category }}</span>
+                            </div>
+                        </div>
+                        <button @click="deleteTask(task)" class="text-red-500 hover:text-red-700">
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, computed } = Vue
+
+        const app = createApp({
+            setup() {
+                const tasks = ref([])
+                const filter = ref('all')
+                const newTask = ref({
+                    title: '',
+                    description: '',
+                    category: 'work',
+                    completed: false
+                })
+
+                const filteredTasks = computed(() => {
+                    if (filter.value === 'all') return tasks.value
+                    if (filter.value === 'completed') return tasks.value.filter(task => task.completed)
+                    return tasks.value.filter(task => !task.completed)
+                })
+
+                const addTask = () => {
+                    if (!newTask.value.title) return
+                    tasks.value.push({
+                        id: Date.now(),
+                        ...newTask.value
+                    })
+                    newTask.value = {
+                        title: '',
+                        description: '',
+                        category: 'work',
+                        completed: false
+                    }
+                    animateTask()
+                }
+
+                const deleteTask = (task) => {
+                    const index = tasks.value.indexOf(task)
+                    tasks.value.splice(index, 1)
+                }
+
+                const toggleTask = (task) => {
+                    task.completed = !task.completed
+                }
+
+                const animateTask = () => {
+                    gsap.from("#taskList > div:first-child", {
+                        opacity: 0,
+                        y: -20,
+                        duration: 0.5
+                    })
+                }
+
+                return {
+                    tasks,
+                    filter,
+                    newTask,
+                    filteredTasks,
+                    addTask,
+                    deleteTask,
+                    toggleTask
+                }
+            }
+        })
+
+        app.mount('#app')
+
+        new Sortable(document.getElementById('taskList'), {
+            animation: 150,
+            ghostClass: 'bg-gray-100'
+        })
+    </script>
+</body>
+</html>
